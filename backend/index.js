@@ -1,0 +1,81 @@
+require('dotenv').config({ quiet: true });
+
+if (!process.env.JWT_SECRET) {
+  console.error('Falta JWT_SECRET en el archivo .env (ver .env.example)');
+  process.exit(1);
+}
+
+const path = require('path');
+const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
+const { pool } = require('./config/db');
+const routes = require('./routes');
+const { HttpError } = require('./services/base.service');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Build de Angular servido por la misma API (así se despliega en Render)
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'dist', 'transmetro', 'browser');
+const hayFrontend = fs.existsSync(path.join(FRONTEND_DIR, 'index.html'));
+if (hayFrontend) app.use(express.static(FRONTEND_DIR));
+
+app.get('/', (req, res) => {
+  res.json({ nombre: 'API del Sistema de Control para el Transmetro', version: '1.0.0' });
+});
+
+app.use('/api', routes);
+
+// Cualquier otra ruta GET pertenece al router de Angular
+if (hayFrontend) {
+  app.get('/{*ruta}', (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'index.html')));
+}
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
+// Errores de MySQL traducidos a respuestas claras para el cliente
+const MYSQL_ERRORS = {
+  ER_DUP_ENTRY: [409, 'Ya existe un registro con ese valor'],
+  ER_ROW_IS_REFERENCED_2: [409, 'No se puede eliminar: el registro está siendo utilizado por otros datos'],
+  ER_NO_REFERENCED_ROW_2: [400, 'Uno de los identificadores relacionados no existe'],
+  ER_CHECK_CONSTRAINT_VIOLATED: [400, 'Un valor no cumple las restricciones permitidas'],
+  ER_BAD_NULL_ERROR: [400, 'Falta un campo obligatorio'],
+  ER_TRUNCATED_WRONG_VALUE_FOR_FIELD: [400, 'Un valor tiene un formato inválido'],
+  ER_DATA_TOO_LONG: [400, 'Un valor excede la longitud permitida'],
+};
+
+app.use((err, req, res, next) => {
+  if (err instanceof HttpError) {
+    return res.status(err.status).json({ error: err.message });
+  }
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'El cuerpo de la petición no es un JSON válido' });
+  }
+  const mysqlError = MYSQL_ERRORS[err.code];
+  if (mysqlError) {
+    return res.status(mysqlError[0]).json({ error: mysqlError[1] });
+  }
+  console.error(err);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+const PORT = Number(process.env.PORT) || 3000;
+
+app.listen(PORT, async (error) => {
+  if (error) {
+    console.error(`No se pudo iniciar la API en el puerto ${PORT}:`, error.message);
+    process.exit(1);
+  }
+  console.log(`API escuchando en http://localhost:${PORT}`);
+  try {
+    await pool.query('SELECT 1');
+    console.log('Conexión a MySQL establecida');
+  } catch (err) {
+    console.error('No se pudo conectar a MySQL:', err.message);
+  }
+});

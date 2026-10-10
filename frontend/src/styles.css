@@ -1,0 +1,72 @@
+/* Base de la página con la tipografía y colores del tema de Angular Material */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+/* Distribución de las pantallas */
+
+.encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+table {
+  width: 100%;
+}
+
+td.acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  max-width: 520px;
+}
+
+.botones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.tarjeta {
+  margin-bottom: 24px;
+}
+
+/* Resultado de las reglas de negocio, con los colores del tema */
+
+.alerta {
+  color: var(--mat-sys-error);
+}
+
+.correcto {
+  color: var(--mat-sys-primary);
+}
+
+/* Pantalla de inicio de sesión */
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
