@@ -12,4 +12,16 @@ module.exports = {
   async buses(req, res) {
     res.json(await service.buses());
   },
+
+  async accesosPorLinea(req, res) {
+    res.json(await service.accesosPorLinea());
+  },
+
+  async accesosSinGuardia(req, res) {
+    res.json(await service.accesosSinGuardia());
+  },
+
+  async resumen(req, res) {
+    res.json(await service.resumen());
+  },
 };

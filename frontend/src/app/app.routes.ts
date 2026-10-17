@@ -3,7 +3,7 @@ import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
   {
-    path: 'login',
+    path: '',
     loadChildren: () => import('./auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
   {
@@ -11,7 +11,11 @@ export const routes: Routes = [
     path: '',
     canActivateChild: [authGuard],
     children: [
-      { path: '', redirectTo: 'lineas', pathMatch: 'full' },
+      { path: '', redirectTo: 'inicio', pathMatch: 'full' },
+      {
+        path: 'inicio',
+        loadComponent: () => import('./inicio/inicio').then((m) => m.Inicio),
+      },
       {
         path: 'municipalidades',
         loadChildren: () => import('./municipalidades/municipalidades.routes').then((m) => m.MUNICIPALIDADES_ROUTES),
@@ -49,10 +53,18 @@ export const routes: Routes = [
         loadChildren: () => import('./operadores/operadores.routes').then((m) => m.OPERADORES_ROUTES),
       },
       {
+        path: 'visitas',
+        loadChildren: () => import('./visitas/visitas.routes').then((m) => m.VISITAS_ROUTES),
+      },
+      {
+        path: 'alertas',
+        loadChildren: () => import('./alertas/alertas.routes').then((m) => m.ALERTAS_ROUTES),
+      },
+      {
         path: 'reportes',
         loadChildren: () => import('./reportes/reportes.routes').then((m) => m.REPORTES_ROUTES),
       },
     ],
   },
-  { path: '**', redirectTo: 'lineas' },
+  { path: '**', redirectTo: 'inicio' },
 ];

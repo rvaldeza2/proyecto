@@ -1,6 +1,7 @@
 const bus = require('../models/bus.model');
 const linea = require('../models/linea.model');
 const parqueo = require('../models/parqueo.model');
+const alertaService = require('./alerta.service');
 const { withTransaction } = require('../config/db');
 const {
   HttpError,
@@ -74,6 +75,7 @@ async function asignarLinea(id, data) {
 }
 
 // RF05: una línea que cumple el mínimo no puede quedar con menos buses que estaciones
+// (si la línea todavía no llega al mínimo sí se deja retirar, porque igual ya está incompleta)
 async function retirarDeLinea(id) {
   await withTransaction(async (conn) => {
     const actual = await bus.lockById(id, conn);
@@ -102,9 +104,7 @@ async function cambiarParqueo(id, data) {
 }
 
 // RF13: si el bus no alcanza el 25% de su capacidad, espera 5 minutos adicionales
-async function evaluarEspera(id, data) {
-  const pasajeros = requireNonNegativeInt(data.pasajeros, 'pasajeros');
-  const datos = await crud.get(id);
+function calcularEspera(datos, pasajeros) {
   const porcentaje = round2((pasajeros * 100) / datos.capacidad);
   const esperaAdicional = porcentaje < UMBRAL_OCUPACION_BAJA ? MINUTOS_ESPERA_ADICIONAL : 0;
   return {
@@ -120,6 +120,26 @@ async function evaluarEspera(id, data) {
   };
 }
 
+// La espera adicional queda guardada en el historial de alertas
+async function registrarAlertaEspera(resultado, idEstacion, db) {
+  if (resultado.espera_adicional_min === 0) return;
+  await alertaService.registrar({
+    tipo: alertaService.TIPOS.ESPERA,
+    id_estacion: idEstacion,
+    id_bus: resultado.id_bus,
+    pasajeros: resultado.pasajeros,
+    porcentaje: resultado.porcentaje,
+    mensaje: resultado.mensaje,
+  }, db);
+}
+
+async function evaluarEspera(id, data) {
+  const pasajeros = requireNonNegativeInt(data.pasajeros, 'pasajeros');
+  const resultado = calcularEspera(await crud.get(id), pasajeros);
+  await registrarAlertaEspera(resultado, null);
+  return resultado;
+}
+
 module.exports = {
   ...crud,
   create,
@@ -128,4 +148,6 @@ module.exports = {
   retirarDeLinea,
   cambiarParqueo,
   evaluarEspera,
+  calcularEspera,
+  registrarAlertaEspera,
 };

@@ -17,6 +17,8 @@ router.use('/parqueos', require('./parqueo.routes'));
 router.use('/buses', require('./bus.routes'));
 router.use('/pilotos', require('./piloto.routes'));
 router.use('/operadores', require('./operador.routes'));
+router.use('/visitas', require('./visita.routes'));
+router.use('/alertas', require('./alerta.routes'));
 router.use('/reportes', require('./reporte.routes'));
 
 module.exports = router;

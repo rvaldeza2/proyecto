@@ -10,6 +10,7 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const { pool } = require('./config/db');
+const { aplicarMigraciones } = require('./config/migraciones');
 const routes = require('./routes');
 const { HttpError } = require('./services/base.service');
 
@@ -66,16 +67,29 @@ app.use((err, req, res, next) => {
 
 const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, async (error) => {
-  if (error) {
-    console.error(`No se pudo iniciar la API en el puerto ${PORT}:`, error.message);
-    process.exit(1);
-  }
-  console.log(`API escuchando en http://localhost:${PORT}`);
+// La base se revisa y se migra antes de recibir peticiones, para que nadie
+// entre al sistema mientras faltan columnas o tablas
+async function prepararBase() {
   try {
     await pool.query('SELECT 1');
     console.log('Conexión a MySQL establecida');
   } catch (err) {
     console.error('No se pudo conectar a MySQL:', err.message);
+    return;
   }
+  try {
+    if (await aplicarMigraciones()) console.log('Migración v2 aplicada a la base de datos');
+  } catch (err) {
+    console.error('No se pudo aplicar la migración de la base de datos:', err.message);
+  }
+}
+
+prepararBase().then(() => {
+  app.listen(PORT, (error) => {
+    if (error) {
+      console.error(`No se pudo iniciar la API en el puerto ${PORT}:`, error.message);
+      process.exit(1);
+    }
+    console.log(`API escuchando en http://localhost:${PORT}`);
+  });
 });

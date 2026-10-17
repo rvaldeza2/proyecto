@@ -26,6 +26,7 @@ export class App {
   auth = inject(AuthService);
 
   menu = [
+    { ruta: '/inicio', texto: 'Inicio', icono: 'dashboard' },
     { ruta: '/lineas', texto: 'Líneas', icono: 'route' },
     { ruta: '/estaciones', texto: 'Estaciones', icono: 'location_on' },
     { ruta: '/accesos', texto: 'Accesos', icono: 'door_front' },
@@ -34,6 +35,8 @@ export class App {
     { ruta: '/parqueos', texto: 'Parqueos', icono: 'local_parking' },
     { ruta: '/pilotos', texto: 'Pilotos', icono: 'badge' },
     { ruta: '/operadores', texto: 'Operadores', icono: 'computer' },
+    { ruta: '/visitas', texto: 'Visitas', icono: 'pin_drop' },
+    { ruta: '/alertas', texto: 'Alertas', icono: 'notifications' },
     { ruta: '/municipalidades', texto: 'Municipalidades', icono: 'account_balance' },
     { ruta: '/reportes', texto: 'Reportes', icono: 'summarize' },
   ];

@@ -14,6 +14,11 @@ const pool = mysql.createPool({
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 });
 
+// Ojo: Render y la base en la nube trabajan en UTC, por eso las visitas salían con 6 horas de más.
+// Hora de Guatemala (UTC-6, sin horario de verano) para NOW() y las fechas por defecto,
+// aunque el servidor de la base de datos esté en UTC
+pool.pool.on('connection', (conn) => conn.query("SET time_zone = '-06:00'"));
+
 // Ejecuta varias consultas como una sola transacción.
 async function withTransaction(work) {
   const conn = await pool.getConnection();

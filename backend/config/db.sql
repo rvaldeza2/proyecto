@@ -116,7 +116,41 @@ CREATE TABLE usuario (
     nombre      VARCHAR(150) NOT NULL,
     usuario     VARCHAR(50) NOT NULL UNIQUE,
     contrasena  VARCHAR(100) NOT NULL,
-    rol         VARCHAR(20) NOT NULL CHECK (rol IN ('ADMINISTRADOR', 'OPERADOR', 'CONSULTA'))
+    rol         VARCHAR(20) NOT NULL CHECK (rol IN ('ADMINISTRADOR', 'OPERADOR', 'CONSULTA')),
+    -- Recuperación de contraseña: la respuesta también se guarda como hash bcrypt
+    pregunta_seguridad   VARCHAR(150) NULL,
+    respuesta_seguridad  VARCHAR(100) NULL
+);
+
+-- Visitas que cada unidad realiza a las estaciones durante su recorrido
+CREATE TABLE visita (
+    id_visita             INT AUTO_INCREMENT PRIMARY KEY,
+    id_bus                INT NOT NULL,
+    id_estacion           INT NOT NULL,
+    fecha_hora            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    pasajeros             INT NOT NULL CHECK (pasajeros >= 0),
+    espera_adicional_min  INT NOT NULL DEFAULT 0 CHECK (espera_adicional_min >= 0),
+    CONSTRAINT fk_visita_bus
+        FOREIGN KEY (id_bus) REFERENCES bus(id_bus) ON DELETE CASCADE,
+    CONSTRAINT fk_visita_estacion
+        FOREIGN KEY (id_estacion) REFERENCES estacion(id_estacion) ON DELETE CASCADE
+);
+
+-- Historial de alertas: sobrecupo en estación (150%) y espera adicional de bus (25%)
+CREATE TABLE alerta (
+    id_alerta    INT AUTO_INCREMENT PRIMARY KEY,
+    tipo         VARCHAR(20) NOT NULL CHECK (tipo IN ('SOBRECUPO', 'ESPERA')),
+    id_estacion  INT NULL,
+    id_bus       INT NULL,
+    pasajeros    INT NOT NULL CHECK (pasajeros >= 0),
+    porcentaje   NUMERIC(7,2) NULL,
+    mensaje      VARCHAR(255) NOT NULL,
+    fecha_hora   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atendida     BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_alerta_estacion
+        FOREIGN KEY (id_estacion) REFERENCES estacion(id_estacion) ON DELETE CASCADE,
+    CONSTRAINT fk_alerta_bus
+        FOREIGN KEY (id_bus) REFERENCES bus(id_bus) ON DELETE CASCADE
 );
 
 
@@ -311,7 +345,24 @@ INSERT INTO operador (id_operador, nombre, id_estacion) VALUES
 (16, 'Marco Tulio Bonilla Argueta',        16);
 
 -- Contraseña de los tres usuarios de prueba: Transmetro2026!
-INSERT INTO usuario (id_usuario, nombre, usuario, contrasena, rol) VALUES
-(1, 'Administrador de la Mancomunidad', 'admin',    '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'ADMINISTRADOR'),
-(2, 'Andrea Sofía Castillo Mérida',     'operador', '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'OPERADOR'),
-(3, 'Usuario de consulta',              'consulta', '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'CONSULTA');
+-- Respuesta a la pregunta de seguridad: azul
+INSERT INTO usuario (id_usuario, nombre, usuario, contrasena, rol, pregunta_seguridad, respuesta_seguridad) VALUES
+(1, 'Administrador de la Mancomunidad', 'admin',    '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'ADMINISTRADOR', '¿Cuál es su color favorito?', '$2b$10$Ovo9TE3lxk8lpROkqIB3q.S0o0sx1sQ.hc5sJQgl.d16S39kEU.2S'),
+(2, 'Andrea Sofía Castillo Mérida',     'operador', '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'OPERADOR',      '¿Cuál es su color favorito?', '$2b$10$Ovo9TE3lxk8lpROkqIB3q.S0o0sx1sQ.hc5sJQgl.d16S39kEU.2S'),
+(3, 'Usuario de consulta',              'consulta', '$2a$10$Mw1yUROHoFWfVXryNG58c.IopOUkNtUXTuxNoIpBgq2MK3GQd5t4W', 'CONSULTA',      '¿Cuál es su color favorito?', '$2b$10$Ovo9TE3lxk8lpROkqIB3q.S0o0sx1sQ.hc5sJQgl.d16S39kEU.2S');
+
+-- Recorrido de ejemplo: bus U-101TMG (Línea 12) y U-201TMG (Línea 13)
+INSERT INTO visita (id_bus, id_estacion, fecha_hora, pasajeros, espera_adicional_min) VALUES
+(1, 1, '2026-10-15 06:00:00', 95, 0),
+(1, 2, '2026-10-15 06:07:00', 120, 0),
+(1, 3, '2026-10-15 06:15:00', 140, 0),
+(1, 4, '2026-10-15 06:22:00', 60, 0),
+(1, 5, '2026-10-15 06:27:00', 30, 5),
+(7, 3, '2026-10-15 06:05:00', 110, 0),
+(7, 6, '2026-10-15 06:10:00', 25, 5),
+(7, 7, '2026-10-15 06:21:00', 70, 0);
+
+INSERT INTO alerta (tipo, id_estacion, id_bus, pasajeros, porcentaje, mensaje, fecha_hora, atendida) VALUES
+('ESPERA',    5,    1, 30,  18.75, 'Ocupación de 18.75%: el bus debe esperar 5 minutos adicionales', '2026-10-15 06:27:00', TRUE),
+('ESPERA',    6,    7, 25,  15.63, 'Ocupación de 15.63%: el bus debe esperar 5 minutos adicionales', '2026-10-15 06:10:00', TRUE),
+('SOBRECUPO', 3, NULL, 3200, 161.62, 'Sobrecupo de 161.62%: solicitar envío de un bus adicional', '2026-10-15 07:30:00', FALSE);

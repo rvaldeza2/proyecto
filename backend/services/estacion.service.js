@@ -1,4 +1,5 @@
 const estacion = require('../models/estacion.model');
+const alertaService = require('./alerta.service');
 const { createCrudService, requireNonNegativeInt, round2 } = require('./base.service');
 
 const UMBRAL_SOBRECUPO = 150;
@@ -25,8 +26,9 @@ async function evaluarCapacidad(id, data) {
   const datos = await crud.get(id);
   const { unidades, capacidad_total: capacidadTotal } = await estacion.capacidadUnidades(id);
 
+  let resultado;
   if (capacidadTotal === 0) {
-    return {
+    resultado = {
       id_estacion: datos.id_estacion,
       estacion: datos.nombre,
       pasajeros,
@@ -36,22 +38,35 @@ async function evaluarCapacidad(id, data) {
       alerta: pasajeros > 0,
       mensaje: 'La estación no tiene unidades asignadas: solicitar envío de un bus',
     };
+  } else {
+    const porcentaje = round2((pasajeros * 100) / capacidadTotal);
+    const alerta = porcentaje >= UMBRAL_SOBRECUPO;
+    resultado = {
+      id_estacion: datos.id_estacion,
+      estacion: datos.nombre,
+      pasajeros,
+      unidades,
+      capacidad_total: capacidadTotal,
+      porcentaje,
+      alerta,
+      mensaje: alerta
+        ? `Sobrecupo de ${porcentaje}%: solicitar envío de un bus adicional`
+        : 'Capacidad dentro del rango normal',
+    };
   }
 
-  const porcentaje = round2((pasajeros * 100) / capacidadTotal);
-  const alerta = porcentaje >= UMBRAL_SOBRECUPO;
-  return {
-    id_estacion: datos.id_estacion,
-    estacion: datos.nombre,
-    pasajeros,
-    unidades,
-    capacidad_total: capacidadTotal,
-    porcentaje,
-    alerta,
-    mensaje: alerta
-      ? `Sobrecupo de ${porcentaje}%: solicitar envío de un bus adicional`
-      : 'Capacidad dentro del rango normal',
-  };
+  // Cada alerta queda guardada en el historial para darle seguimiento.
+  // Antes solo se mostraba en pantalla y se perdía al recargar, por eso se agregó la tabla alerta.
+  if (resultado.alerta) {
+    await alertaService.registrar({
+      tipo: alertaService.TIPOS.SOBRECUPO,
+      id_estacion: datos.id_estacion,
+      pasajeros,
+      porcentaje: resultado.porcentaje,
+      mensaje: resultado.mensaje,
+    });
+  }
+  return resultado;
 }
 
 module.exports = { ...crud, getLineas, getAccesos, evaluarCapacidad };

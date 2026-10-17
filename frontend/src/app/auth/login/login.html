@@ -1,5 +1,5 @@
 <div class="login">
-  <mat-card appearance="outlined">
+  <mat-card appearance="outlined" class="tarjeta-login">
     <mat-card-header>
       <mat-card-title>Sistema de Control del Transmetro</mat-card-title>
       <mat-card-subtitle>Inicie sesión para continuar</mat-card-subtitle>
@@ -20,6 +20,11 @@
 
         <button mat-flat-button type="submit">Ingresar</button>
       </form>
+
+      <div class="enlaces-login">
+        <a mat-button routerLink="/recuperar">¿Olvidó su contraseña?</a>
+        <a mat-button routerLink="/registro">Crear cuenta</a>
+      </div>
     </mat-card-content>
   </mat-card>
 </div>

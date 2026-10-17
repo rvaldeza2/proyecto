@@ -3,7 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { API_URL } from '../api';
-import { LoginDatos, RespuestaLogin, Usuario } from './usuario.model';
+import {
+  LoginDatos,
+  PreguntaSeguridad,
+  RegistroDatos,
+  RespuestaLogin,
+  RestablecerDatos,
+  Usuario,
+} from './usuario.model';
 
 const CLAVE_TOKEN = 'transmetro_token';
 const CLAVE_USUARIO = 'transmetro_usuario';
@@ -18,7 +25,23 @@ export class AuthService {
   usuario = signal<Usuario | null>(this.leerUsuario());
 
   async login(datos: LoginDatos) {
-    const respuesta = await firstValueFrom(this.http.post<RespuestaLogin>(`${API_URL}/auth/login`, datos));
+    this.guardarSesion(await firstValueFrom(this.http.post<RespuestaLogin>(`${API_URL}/auth/login`, datos)));
+  }
+
+  // Al crear la cuenta se inicia sesión de una vez
+  async registrar(datos: RegistroDatos) {
+    this.guardarSesion(await firstValueFrom(this.http.post<RespuestaLogin>(`${API_URL}/auth/registro`, datos)));
+  }
+
+  preguntaSeguridad(usuario: string) {
+    return firstValueFrom(this.http.post<PreguntaSeguridad>(`${API_URL}/auth/recuperar/pregunta`, { usuario }));
+  }
+
+  restablecerContrasena(datos: RestablecerDatos) {
+    return firstValueFrom(this.http.post<{ mensaje: string }>(`${API_URL}/auth/recuperar`, datos));
+  }
+
+  private guardarSesion(respuesta: RespuestaLogin) {
     localStorage.setItem(CLAVE_TOKEN, respuesta.token);
     localStorage.setItem(CLAVE_USUARIO, JSON.stringify(respuesta.usuario));
     this.token.set(respuesta.token);

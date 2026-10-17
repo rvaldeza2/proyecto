@@ -5,6 +5,18 @@ async function login(req, res) {
   res.json(await service.login(req.body || {}));
 }
 
+async function registrar(req, res) {
+  res.status(201).json(await service.registrar(req.body || {}));
+}
+
+async function preguntaSeguridad(req, res) {
+  res.json(await service.preguntaSeguridad(req.body || {}));
+}
+
+async function restablecerContrasena(req, res) {
+  res.json(await service.restablecerContrasena(req.body || {}));
+}
+
 async function perfil(req, res) {
   res.json(req.usuario);
 }
@@ -29,4 +41,4 @@ function permitir(...roles) {
   };
 }
 
-module.exports = { login, perfil, autenticar, permitir };
+module.exports = { login, registrar, preguntaSeguridad, restablecerContrasena, perfil, autenticar, permitir };
